@@ -1,6 +1,7 @@
-%TODO: Sauvegarder les chemins des intrus et robot puis afficher la carte pour visualiser
-
 % Robot se déplace avant les intrus
+
+%TODO: Regarder que la position du robot de base est différente de celle des intrus
+%TODO: Faire en sorte que tous les intrus soient des cases différentes de base
 
 main_find(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured) :-
     once(find_2(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured)).
@@ -10,12 +11,6 @@ find_2(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured)
     MaxMoves == 0 -> (BestPath = [RobotPos], MaxCaptured = 0) ;
     find_best(Length, Width, RobotPos, IntrudersPaths, 0, MaxMoves, [RobotPos], 0, 0, [], BestPath, MaxCaptured, _, WhenCaptured),
     display(BestPath, MaxCaptured, WhenCaptured).
-    % write('Best path length: '), write(PathLength), nl,
-    % write('Best path: '), write(BestPath), nl,
-    % write('Max captured: '), write(MaxCaptured), nl,
-    % write('Best score: '), write(BestScore), nl,
-    % write('When captured: '), write(WhenCaptured), nl.
-
 
 display(_, 0, _) :-
     write('No intruders captured'), nl,
@@ -30,60 +25,39 @@ display(BestPath, MaxCaptured, [(Pos, Step) | Rest]) :-
     write('Intruder caught! In positition: '), write(Pos), write(' at step: '), write(Step), nl,
     display(BestPath, MaxCaptured, Rest).
 
-% find(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured) :-
-%     MaxMoves < 0 -> fail ;
-%     MaxMoves == 0 -> (BestPath = [RobotPos], MaxCaptured = 0) ;
-%     % Collecter tous les résultats possibles
-%     % Filtrer les intrus avec des chemins contenant uniquement des `false`
-%     filter_intruders(IntrudersPaths, FilteredIntrudersPaths),
-%     length(FilteredIntrudersPaths, TotalIntruders),
-%     write('Total intruders: '), write(TotalIntruders), nl,
-%     findall(
-%         (Path, Captured),
-%         simulate(Length, Width, RobotPos, FilteredIntrudersPaths, 0, MaxMoves, [RobotPos], 0, Path, Captured),
-%         Results
-%     ),
-%     write('Results: '), write(Results), nl,
-%     % Trouver le meilleur résultat (avec le MaxCaptured le plus élevé)
-%     sort(2, @>=, Results, SortedResults), % Trier par MaxCaptured (descendant)
-%     SortedResults = [(BestPath, MaxCaptured) | _]. % Prendre le premier résultat
-
 find_best(_, _, _, _, Step, MaxMoves, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured) :-
     Step >= MaxMoves.
 
 find_best(Length, Width, RobotPos, IntrudersPaths, Step, MaxMoves, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, BestPath, MaxCaptured, BestScore, WhenCaptured) :-
-    % write('Step0: '), write(Step), nl,
     Step < MaxMoves,
     Diff is MaxMoves - Step,
-    % write('Diff: '), write(Diff), nl,
     (
         Diff >= 5 -> (StepDepth is Step + 5, NextStep is StepDepth) ;
         Diff < 5 -> (StepDepth is Step + Diff, NextStep is StepDepth)
     ),
-    % write('StepDepth: '), write(StepDepth), nl, nl,
     findall(
         (Path, Score, Captured, NewPosRobot, RemainingIntrudersPaths, When),
         simulate_with_score(Length, Width, RobotPos, IntrudersPaths, Step, StepDepth, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, Path, Captured, Score, NewPosRobot, RemainingIntrudersPaths, When),
         Results
     ),
-    % write('Results with scores: '), write(Results), nl,
     % Trier les résultats par score
-    sort(2, @>=, Results, SortedResults), % Trier par Score (descendant)
+    write('Results before sorting:'), write(Results), nl,
+    % sort(2, @>=, Results, SortedResults), % Trier par Score (descendant)
+    sort_by_score(Results, SortedResults), % Trier par Score (descendant)
+    % predsort(compare_scores, Results, SortedResults), % Trier par Score (descendant)
     SortedResults = [(BestPathTemp, BestScoreTemp, MaxCapturedTemp, NewPosRobotMax, MinRemainingIntrudersPaths, WhenCapturedMax) | _], % Prendre le premier résultat
-    % write('Best path: '), write(BestPath), nl,
-    % write('Max captured: '), write(MaxCaptured), nl,
-    % write('Score: '), write(BestScore), nl,
-    % write('Robot position: '), write(NewPosRobotMax), nl,
-    % write('Remaining intruders paths: '), write(MinRemainingIntrudersPaths), nl.
-    % write('When captured: '), write(WhenCapturedMax), nl,
     find_best(Length, Width, NewPosRobotMax, MinRemainingIntrudersPaths, NextStep, MaxMoves, BestPathTemp, MaxCapturedTemp, BestScoreTemp, WhenCapturedMax, BestPath, MaxCaptured, BestScore, WhenCaptured).
-    % write('Best path: '), write(BestPathTemp), nl,
-    % write('Max captured: '), write(MaxCapturedTemp), nl,
-    % write('Score: '), write(BestScoreTemp), nl,
-    % write('Robot position: '), write(NewPosRobotMax), nl,
-    % write('Remaining intruders paths: '), write(MinRemainingIntrudersPaths), nl,
-    % write('Next step: '), write(NextStep), nl.
 
+sort_by_score([], []). % Cas de base : liste vide
+sort_by_score([H | T], Sorted) :-
+    sort_by_score(T, SortedT),
+    insert_by_score(H, SortedT, Sorted).
+
+insert_by_score(Elem, [], [Elem]).
+insert_by_score((Path1, Score1, Captured1, Pos1, Intruders1, When1), [(Path2, Score2, Captured2, Pos2, Intruders2, When2) | Rest], [(Path1, Score1, Captured1, Pos1, Intruders1, When1), (Path2, Score2, Captured2, Pos2, Intruders2, When2) | Rest]) :-
+    Score1 >= Score2.
+insert_by_score(Elem, [H | T], [H | Sorted]) :-
+    insert_by_score(Elem, T, Sorted).
 
 % Générer une liste de N coordonnées aléatoires dans une grille de dimensions Length x Width
 generate_random_coordinates(0, _, _, []). % Cas de base : aucune coordonnée à générer
@@ -95,6 +69,12 @@ generate_random_coordinates(N, Length, Width, [(X, Y) | Rest]) :-
     random_between(0, MaxY, Y),  % Générer une coordonnée Y aléatoire
     N1 is N - 1,                    % Décrémenter le compteur
     generate_random_coordinates(N1, Length, Width, Rest). % Générer le reste des coordonnées
+
+% random_between(Low, High, Random) :-
+%     Low =< High,
+%     random(RandomFloat),
+%     Range is High - Low + 1,
+%     Random is Low + floor(RandomFloat * Range). % Générer un nombre aléatoire dans la plage [Low, High]
 
 % Générer plusieurs listes de coordonnées aléatoires
 generate_multiple_random_coordinates(0, _, _, _, []). % Cas de base : aucune liste à générer
@@ -121,23 +101,10 @@ filter_intruders([IntruderPath | Rest], FilteredPaths) :-
         filter_intruders(Rest, RemainingPaths)
     ).
 
-% simulate(_, _, _, _, MaxMoves, MaxMoves, CurrentPath, CurrentCaptured, CurrentPath, CurrentCaptured).
-% simulate(_, _, _, [], _, _, CurrentPath, CurrentCaptured, CurrentPath, CurrentCaptured).
-% simulate(Length, Width, RobotPos, IntrudersPaths, Step, MaxMoves, CurrentPath, CurrentCaptured, BestPath, MaxCaptured) :-
-%     Step < MaxMoves,
-%     valid_moves(Length, Width, RobotPos, NewPositions),
-%     member(NewPos, NewPositions),
-%     process_intruders(NewPos, Step, IntrudersPaths, NumCaptured, RemainingIntrudersPaths),
-%     NewCaptured is CurrentCaptured + NumCaptured,
-%     append(CurrentPath, [NewPos], NewCurrentPath),
-%     NextStep is Step + 1,
-%     simulate(Length, Width, NewPos, RemainingIntrudersPaths, NextStep, MaxMoves, NewCurrentPath, NewCaptured, BestPath, MaxCaptured).
-
 simulate_with_score(_, _, RobotPos, IntrudersPaths, MaxMoves, MaxMoves, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, CurrentPath, CurrentCaptured, CurrentScore, RobotPos, IntrudersPaths, CurrentWhenCaptured).
 simulate_with_score(_, _, RobotPos, [], _, _, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, CurrentPath, CurrentCaptured, CurrentScore, RobotPos, [], CurrentWhenCaptured).
 simulate_with_score(Length, Width, RobotPos, IntrudersPaths, Step, MaxMoves, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, BestPath, MaxCaptured, MaxScore, RP, RIP, WhenCaptured) :-
     Step < MaxMoves,
-    % write('Score: '), write(CurrentScore), nl,
     valid_moves(Length, Width, RobotPos, NewPositions),
     member(NewPos, NewPositions),
     process_intruders(NewPos, Step, IntrudersPaths, NumCaptured, RemainingIntrudersPaths),
