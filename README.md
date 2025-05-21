@@ -1,4 +1,5 @@
-<img src="./assets/robot_intruders.png" alt="robot intruders" style="zoom:20%;" />
+<img src="./assets/robot_intruders.png" alt="robot intruders" style="display: block; margin-left: auto; margin-right: auto; width: 200px; height: auto;">
+
 
 # Robot Intruders
 
