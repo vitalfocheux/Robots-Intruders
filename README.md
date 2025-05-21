@@ -1,4 +1,4 @@
-<img src="/home/juliengauthier410/master1/s8/pa-Programmation_Avancée/tp/projet/Robots-Intruders/assets/robot_intruders.png" alt="robot intruders" style="zoom:20%;" />
+<img src="./assets/robot_intruders.png" alt="robot intruders" style="zoom:20%;" />
 
 # Robot Intruders
 
