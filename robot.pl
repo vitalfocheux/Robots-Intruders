@@ -1,16 +1,44 @@
 % Robot se déplace avant les intrus
 
-%TODO: Regarder que la position du robot de base est différente de celle des intrus
-%TODO: Faire en sorte que tous les intrus soient des cases différentes de base
+find(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured) :-
+    ( MaxMoves < 0 ->
+        fail
+    ; \+ two_by_two(RobotPos, IntrudersPaths) ->
+        fail
+    ; MaxMoves == 0 ->
+        BestPath = [RobotPos], MaxCaptured = 0, !
+    ; filter_intruders(IntrudersPaths, FilteredPaths),
+      find_best(Length, Width, RobotPos, FilteredPaths, 0, MaxMoves, [RobotPos], 0, 0, [], BestPath, MaxCaptured, _, WhenCaptured),
+      display(BestPath, MaxCaptured, WhenCaptured)
+    ).
 
-main_find(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured) :-
-    once(find_2(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured)).
+find_with_random(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured) :-
+    ( MaxMoves < 0 ->
+        fail
+    ; MaxMoves == 0 ->
+        BestPath = [RobotPos], MaxCaptured = 0, !
+    ; filter_intruders(IntrudersPaths, FilteredPaths),
+      find_best(Length, Width, RobotPos, FilteredPaths, 0, MaxMoves, [RobotPos], 0, 0, [], BestPath, MaxCaptured, _, WhenCaptured),
+      display(BestPath, MaxCaptured, WhenCaptured)
+    ).
 
-find_2(Length, Width, RobotPos, IntrudersPaths, MaxMoves, BestPath, MaxCaptured) :-
-    MaxMoves < 0 -> fail ;
-    MaxMoves == 0 -> (BestPath = [RobotPos], MaxCaptured = 0) ;
-    find_best(Length, Width, RobotPos, IntrudersPaths, 0, MaxMoves, [RobotPos], 0, 0, [], BestPath, MaxCaptured, _, WhenCaptured),
-    display(BestPath, MaxCaptured, WhenCaptured).
+all_positions(Length, Width, AllPositions) :-
+    findall((X, Y), (
+        between(0, Length, X),
+        between(0, Width, Y)
+    ), AllPositions).
+
+% Vérifie que tous les premiers éléments des IntrudersPaths sont différents entre eux et du RobotPos
+two_by_two(RobotPos, IntrudersPaths) :-
+    findall(First, (
+        member(Path, IntrudersPaths),
+        Path = [First | _]
+    ), Firsts),
+    append([RobotPos], Firsts, AllStarts),
+    sort(AllStarts, Sorted),           % Trie et enlève les doublons
+    length(AllStarts, L1),
+    length(Sorted, L2),
+    L1 =:= L2.                         % Si pas de doublons, les longueurs sont égales
 
 display(_, 0, _) :-
     write('No intruders captured'), nl,
@@ -27,7 +55,7 @@ display(BestPath, MaxCaptured, [(Pos, Step) | Rest]) :-
 
 find_best(_, _, _, _, Step, MaxMoves, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured) :-
     Step >= MaxMoves.
-
+find_best(_, _, _, [], _, _, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured) :- !.
 find_best(Length, Width, RobotPos, IntrudersPaths, Step, MaxMoves, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, BestPath, MaxCaptured, BestScore, WhenCaptured) :-
     Step < MaxMoves,
     Diff is MaxMoves - Step,
@@ -36,28 +64,15 @@ find_best(Length, Width, RobotPos, IntrudersPaths, Step, MaxMoves, CurrentPath, 
         Diff < 5 -> (StepDepth is Step + Diff, NextStep is StepDepth)
     ),
     findall(
-        (Path, Score, Captured, NewPosRobot, RemainingIntrudersPaths, When),
+        % (Path, Score, Captured, NewPosRobot, RemainingIntrudersPaths, When),
+        Score-(Path, Captured, NewPosRobot, RemainingIntrudersPaths, When),
         simulate_with_score(Length, Width, RobotPos, IntrudersPaths, Step, StepDepth, CurrentPath, CurrentCaptured, CurrentScore, CurrentWhenCaptured, Path, Captured, Score, NewPosRobot, RemainingIntrudersPaths, When),
         Results
     ),
     % Trier les résultats par score
-    write('Results before sorting:'), write(Results), nl,
-    % sort(2, @>=, Results, SortedResults), % Trier par Score (descendant)
-    sort_by_score(Results, SortedResults), % Trier par Score (descendant)
-    % predsort(compare_scores, Results, SortedResults), % Trier par Score (descendant)
-    SortedResults = [(BestPathTemp, BestScoreTemp, MaxCapturedTemp, NewPosRobotMax, MinRemainingIntrudersPaths, WhenCapturedMax) | _], % Prendre le premier résultat
+    keysort(Results, SortedResults), % Trier par Score (ascendant)
+    last(SortedResults, BestScoreTemp-(BestPathTemp, MaxCapturedTemp, NewPosRobotMax, MinRemainingIntrudersPaths, WhenCapturedMax)), 
     find_best(Length, Width, NewPosRobotMax, MinRemainingIntrudersPaths, NextStep, MaxMoves, BestPathTemp, MaxCapturedTemp, BestScoreTemp, WhenCapturedMax, BestPath, MaxCaptured, BestScore, WhenCaptured).
-
-sort_by_score([], []). % Cas de base : liste vide
-sort_by_score([H | T], Sorted) :-
-    sort_by_score(T, SortedT),
-    insert_by_score(H, SortedT, Sorted).
-
-insert_by_score(Elem, [], [Elem]).
-insert_by_score((Path1, Score1, Captured1, Pos1, Intruders1, When1), [(Path2, Score2, Captured2, Pos2, Intruders2, When2) | Rest], [(Path1, Score1, Captured1, Pos1, Intruders1, When1), (Path2, Score2, Captured2, Pos2, Intruders2, When2) | Rest]) :-
-    Score1 >= Score2.
-insert_by_score(Elem, [H | T], [H | Sorted]) :-
-    insert_by_score(Elem, T, Sorted).
 
 % Générer une liste de N coordonnées aléatoires dans une grille de dimensions Length x Width
 generate_random_coordinates(0, _, _, []). % Cas de base : aucune coordonnée à générer
@@ -65,16 +80,10 @@ generate_random_coordinates(N, Length, Width, [(X, Y) | Rest]) :-
     N > 0,
     MaxX is Length - 1, % Limite supérieure pour X
     MaxY is Width - 1, % Limite supérieure pour Y
-    random_between(0, MaxX, X), % Générer une coordonnée X aléatoire
-    random_between(0, MaxY, Y),  % Générer une coordonnée Y aléatoire
+    random(0, MaxX, X), % Générer une coordonnée X aléatoire
+    random(0, MaxY, Y),  % Générer une coordonnée Y aléatoire
     N1 is N - 1,                    % Décrémenter le compteur
     generate_random_coordinates(N1, Length, Width, Rest). % Générer le reste des coordonnées
-
-% random_between(Low, High, Random) :-
-%     Low =< High,
-%     random(RandomFloat),
-%     Range is High - Low + 1,
-%     Random is Low + floor(RandomFloat * Range). % Générer un nombre aléatoire dans la plage [Low, High]
 
 % Générer plusieurs listes de coordonnées aléatoires
 generate_multiple_random_coordinates(0, _, _, _, []). % Cas de base : aucune liste à générer
@@ -86,7 +95,6 @@ generate_multiple_random_coordinates(M, N, Length, Width, [Coordinates | Rest]) 
 
 gen(M, N, Length, Width, Lists) :-
     generate_multiple_random_coordinates(M, N, Length, Width, Lists). % Générer M listes de N coordonnées
-    % write('Generated lists of coordinates:'), write(Lists), nl.
 
 all_false([]). % Cas de base : une liste vide est considérée comme contenant uniquement des `false`
 all_false([false | Rest]) :- % Si le premier élément est `false`
@@ -120,14 +128,12 @@ simulate_with_score(Length, Width, RobotPos, IntrudersPaths, Step, MaxMoves, Cur
     calculate_score(NewCaptured, CurrentCaptured, NumCaptured, NewScore, CurrentScore),
     simulate_with_score(Length, Width, NewPos, RemainingIntrudersPaths, NextStep, MaxMoves, NewCurrentPath, NewCaptured, NewScore, NewWhenCaptured, BestPath, MaxCaptured, MaxScore, RP, RIP, WhenCaptured).
 
-
 calculate_score(NewCaptured, CurrentCaptured, NumCaptured, NewScore, CurrentScore) :-
     ( NewCaptured > CurrentCaptured ->
         NewScore is CurrentScore + NumCaptured * 10
     ;
         NewScore is CurrentScore
     ).
-
 
 valid_moves(Length, Width, (X,Y), NewPositions) :-
     findall(
@@ -142,11 +148,7 @@ valid_moves(Length, Width, (X,Y), NewPositions) :-
             NewY >= 0, NewY < Width
         ),
         NewPositions
-    ),
-    asserta(memo_valid_moves(Length, Width, (X,Y), NewPositions)).
-
-
-
+    ).
 
 process_intruders(_, _, [], 0, []). % Cas de base : liste vide
 process_intruders(NewPos, Step, [IntruderPath | Rest], NumCaptured, RemainingIntrudersPaths) :-
