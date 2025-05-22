@@ -34,7 +34,7 @@ swipl -s robot.pl
 
 3. Exemple d'appel dans l'interpréteur :
 ```
-?- gen(3,3,10,10,Lists), main_find(10,10,(0,0),Lists,10,BestPath,MaxCaptured).
+?- find(5,5,(0,0),[[(1,1),(3,3)],[(2,2),(4,4)],[(3,3),(0,0)]],5,BP,MC).
 ```
 
 
@@ -49,8 +49,6 @@ swipl -s robot.pl
 | [two_by_two/2](#two_by_two) | Vérifie que tous les premiers éléments des chemins des intrus sont différents entre eux et du robot. |
 | [display/3](#display) | Affiche le chemin du robot, le nombre d’intrus capturés, et à quel pas chaque capture a eu lieu. |
 | [find_best/13](#find_best) | Explore récursivement les possibilités de déplacement du robot pour maximiser les captures. |
-| [sort_by_score/2](#sort_by_score) | Trie une liste de résultats selon le score décroissant. |
-| [insert_by_score/3](#insert_by_score) | Insère un élément dans une liste triée selon le score. |
 | [generate_random_coordinates/4](#generate_random_coordinates) | Génère une liste de coordonnées aléatoires dans la grille. |
 | [generate_multiple_random_coordinates/5](#generate_multiple_random_coordinates) | Génère plusieurs listes de coordonnées aléatoires pour simuler plusieurs intrus. |
 | [gen/5](#gen) | Raccourci pour générer plusieurs listes de coordonnées aléatoires. |
@@ -111,15 +109,6 @@ swipl -s robot.pl
 - **MaxCaptured** : (sortie) Nombre maximal de captures
 - **BestScore** : (sortie) Score maximal
 - **WhenCaptured** : (sortie) Historique final des captures
-
-### sort_by_score
-- **Results** : Liste de résultats à trier
-- **SortedResults** : (sortie) Liste triée par score décroissant
-
-### insert_by_score
-- **Element** : Élément à insérer (avec score)
-- **List** : Liste triée
-- **NewList** : (sortie) Nouvelle liste avec l’élément inséré
 
 ### generate_random_coordinates
 - **N** : Nombre de coordonnées à générer
@@ -210,6 +199,21 @@ swipl -s robot.pl
 - **IntruderPath** : Chemin de l’intrus
 
 ---
+
+## Choix d'implémentation
+
+Pour initialiser les positions des intrus, nous avons séparé le prédicat `find` en deux afin de différencier les cas aléatoire et non aléatoire. `find` permet ainsi d'initialiser les positions deux à deux distinctes mais sans aléatoire. `find_with_random` permet d'initialiser aléatoirement les positions mais ne garantit pas des positions deux à deux distinctes. Le prédicat `find_with_random` est utilisé dans `gen`.
+
+*exemple d'utilisation* :
+```
+?- gen(3,3,10,10,Lists), find_with_random(10,10,(0,0),Lists,10,BestPath,MaxCaptured).
+```
+
+## Pistes d'amélioration
+
+- Faire en sorte que la génération aléatoire garantisse des positions deux à deux distinctes.
+- Améliorer le comportement du robot pour trouver plus d'intrus en moins de coups (éviter les coups inutiles, rechercher des coups plus stratégiques, ...).
+
 
 ## Ressources utiles
 
