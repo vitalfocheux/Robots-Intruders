@@ -44,7 +44,7 @@ swipl -s robot.pl
 
 | Fonction | Description |
 |---|---|
-| [find/6](#find/6) | Gère les cas de base et appelle la recherche principale du meilleur chemin. |
+| [find/6](#find) | Gère les cas de base et appelle la recherche principale du meilleur chemin. |
 | [find_with_random/6](#find_with_random) | Gère les cas de base sans vérifier la séparation initiale des positions et lance la recherche du meilleur chemin. |
 | [two_by_two/2](#two_by_two) | Vérifie que tous les premiers éléments des chemins des intrus sont différents entre eux et du robot. |
 | [display/3](#display) | Affiche le chemin du robot, le nombre d’intrus capturés, et à quel pas chaque capture a eu lieu. |
@@ -58,7 +58,7 @@ swipl -s robot.pl
 | [filter_intruders/2](#filter_intruders) | Filtre les intrus qui n’ont plus de positions valides. |
 | [simulate_with_score/16](#simulate_with_score) | Simule les déplacements du robot et des intrus, et calcule score et captures. |
 | [calculate_score/5](#calculate_score) | Calcule le score en fonction du nombre d’intrus capturés. |
-| [valid_moves/4](#valid_moves/4) | Génère toutes les positions voisines valides pour le robot. |
+| [valid_moves/4](#valid_moves) | Génère toutes les positions voisines valides pour le robot. |
 | [process_intruders/5](#process_intruders) | Met à jour la liste des intrus après un déplacement du robot. |
 | [process_intruders_resolved/5](#process_intruders_resolved) | Gère la liste des intrus après résolution des conflits de position. |
 | [resolve_conflicts/4](#resolve_conflicts) | Résout les conflits lorsque plusieurs intrus se retrouvent sur la même case. |
@@ -144,7 +144,7 @@ swipl -s robot.pl
 ### all_false
 - **List** : Liste à vérifier (contient uniquement des `false` si vrai)
 
-### filter_intruders/2
+### filter_intruders
 - **IntrudersPaths** : Chemins des intrus
 - **FilteredPaths** : (sortie) Chemins valides restants
 
@@ -173,7 +173,7 @@ swipl -s robot.pl
 - **NewScore** : (sortie) Score mis à jour
 - **CurrentScore** : Score avant le mouvement
 
-### valid_moves/4
+### valid_moves
 - **Length** : Longueur de la grille
 - **Width** : Largeur de la grille
 - **RobotPos** : Position actuelle du robot
